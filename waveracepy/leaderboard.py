@@ -1,5 +1,6 @@
 import waveracepy.api as api
 import pandas as pd
+import numpy as np
 import os
 import glob
 
@@ -27,6 +28,51 @@ def read(date,region='NTSC'):
     df['Date'] = pd.to_datetime(date)
     return df
 
+def fill_missing(df):   
+    categories = list(api.find_categories().values())
+    players = np.unique(df['Player'].to_list())
+    levels = list(api.find_levels().values())
+    category = [
+        c for c in categories
+        if 'Championship' not in c 
+        for l in levels
+        for p in players
+    ] + [
+        'RTA' for c in categories
+        if 'Championship' in c 
+        for p in players
+    ]
+    level = [
+        l for c in categories
+        if 'Championship' not in c 
+        for l in levels
+        for p in players
+    ] + [
+        c for c in categories
+        if 'Championship' in c 
+        for p in players
+    ]
+    player = [
+        p for c in categories
+        if 'Championship' not in c 
+        for l in levels
+        for p in players
+    ] + [
+        p for c in categories
+        if 'Championship' in c
+        for p in players
+    ]
+    skeleton = pd.DataFrame.from_dict(
+        {
+            'Category' : category,
+            'Level' : level,
+            'Player' : player
+        }
+    )
+    df = df.merge(skeleton,how='outer')
+    return df
+    
+
 def get(date,region='NTSC'):
     regionID = api.find_regions()
     categoryID = api.find_categories()
@@ -46,6 +92,8 @@ def get(date,region='NTSC'):
     df['Place'] = place.astype(int).values
     df.rename(columns={'Date':'Run Date'},inplace=True)
     df['Run Date'] = pd.to_datetime(df['Run Date'])
+    df = fill_missing(df)
+    df['Region'] = region
     df['Date'] = pd.to_datetime(date)
     save(df,date,region)
     return df

@@ -8,60 +8,58 @@ import requests
 def top_players(date,region='NTSC'):
     r = rank.read(date,region)
     r = r[~np.isnan(r['Current Rank'])]
-    mvp = r.nlargest(3,['Total Score','dSCORE'])[[
+    mvp = r.nlargest(3,['Score','dS'])[[
         'Player',
         'Current Rank',
-        'Total Score'
-    ]].set_index(['Player','Current Rank','Total Score'])
+        'Score'
+    ]].set_index(['Player','Current Rank','Score'])
     return mvp
 
 def top_newcomers(date,region='NTSC'):
     r = rank.read(date,region)
     r = r[~np.isnan(r['Current Rank'])]
-    rooks = r[np.isnan(r['dSCORE'])].copy()
-    roy = rooks.nlargest(3,'Total Score',keep='all')
+    rooks = r[np.isnan(r['dS'])].copy()
+    roy = rooks.nlargest(3,'Score',keep='all')
     roy = roy[[
         'Player',
         'Current Rank',
-        'dSCORE',
-        'Total Score'
+        'dS',
+        'Score'
     ]].set_index([
         'Player',
-        'Total Score',
+        'Score',
         'Current Rank',
-        'dSCORE'])
+        'dS'])
     return roy
 
 def most_improved_players(date,region='NTSC'):
     r = rank.read(date,region)
     r = r[~np.isnan(r['Current Rank'])]
-    mip = r.nlargest(3,['dSCORE','Total Score'])
+    mip = r.nlargest(3,['dS','Score'])
     mip = mip[[
         'Player',
-        'dSCORE',
+        'dS',
         'Current Rank',
-        'Total Score'
+        'Score'
     ]].set_index([
         'Player',
-        'dSCORE',
-        'Total Score',
+        'dS',
+        'Score',
         'Current Rank'
     ])
     return mip
 
 def most_improved_courses(date):
-    IL = score.read(date,category='IL')
-    RTA = score.read(date,category='RTA')
-    df = pd.concat([IL,RTA])
-    df['Best'] = df.groupby('Category')['dTIME'].transform(lambda x: x.min())
-    df = df[(df['dTIME']<0)&(df['dTIME']==df['Best'])]
+    df = score.read(date)
+    df['Best'] = df.groupby('Category')['dT'].transform(lambda x : x.min())
+    df = df[(df['dT']<0)&(df['dT']==df['Best'])]
     df = df[[
-        'Category','Player','Level',
-        'dTIME','Place','Time','ID']].rename(columns={'ID':'Link'})
+            'Category','Player','Level',
+            'dT','Place','Time','ID']].rename(columns={'ID':'Link'})
     uri = 'https://www.speedrun.com/api/v1/runs/'
     func = lambda x: requests.get(uri + x).json()['data']['videos']['links'][0]['uri']
     df['Link'] = df['Link'].apply(func)
-    df.set_index(['Category','Player','Level','dTIME','Time','Place','Link'],inplace=True)
+    df.set_index(['Category','Player','Level','dT','Time','Place','Link'],inplace=True)
     return df
     
     

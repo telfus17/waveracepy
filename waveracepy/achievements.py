@@ -6,14 +6,10 @@ import numpy as np
 
 def newcomers(date):
     R = rank.read(date)
-    new = R[np.isnan(R['dSCORE'])]
-    IL = score.read(date,category='IL')
-    IL['Category'] = 'IL'
-    IL = IL[IL['Player'].isin(new['Player'])]
-    RTA = score.read(date,category='RTA')
-    RTA = RTA[RTA['Player'].isin(new['Player'])]
-    df = pd.merge(IL,RTA,how='outer')
-    df['Submissions'] = 1
+    new = R[np.isnan(R['dS'])]
+    df = score.read(date)
+    df = df[df['Player'].isin(new['Player'])]
+    df['Submissions'] = np.where(np.isnan(df['Time']),0,1)
     df = df.groupby(['Player'])['Submissions'].sum().reset_index()
     df.sort_values(by=['Player'],key=lambda x: x.str.lower(),inplace=True)
     df.rename(columns={'Player':'New Player'},inplace=True)
@@ -21,10 +17,8 @@ def newcomers(date):
     return df
 
 def pbs(date):
-    IL = score.read(date,category='IL')
-    RTA = score.read(date,category='RTA')
-    df = pd.merge(IL,RTA,how='outer')
-    df = df[df['dTIME']<0]
+    df = score.read(date)
+    df = df[df['dT']<-0.001]
     df['New PBs'] = 1
     df = df.groupby('Player')['New PBs'].sum().reset_index()
     df.sort_values(by=['Player'],key=lambda x: x.str.lower(),inplace=True)
